@@ -1,16 +1,16 @@
-﻿using SnakeGame;
+using SnakeGame;
 using System.Threading;
-class Snake
+internal class Program
 {
-    static bool isRunning = false;
-    static int directionX = (int)Enums.DX;
-    static int directionY = (int)Enums.DY;
-    static Position food = new Position();
-    static Random randomGen = new Random();
-    static Queue<Position> snakeElements = new Queue<Position>();
-
-    static void Main()
+    private static void Main(string[] args)
     {
+        bool isRunning = true;
+        int directionX = (int)Enums.DX;
+        int directionY = (int)Enums.DY;
+        Position food = new Position();
+        Random randomGen = new Random();
+        Queue<Position> snakeElements = new Queue<Position>();
+
         Console.WindowWidth = (int)Enums.Width;
         Console.WindowHeight = (int)Enums.Height;
 
@@ -19,7 +19,7 @@ class Snake
 
         StartGame();
 
-        while (isRunning != true)
+        while (isRunning != false)
         {
             if (Console.KeyAvailable)
             {
@@ -27,154 +27,152 @@ class Snake
             }
 
             MoveSnake();
-            CheckCollision();
-            CheckFood();
+            CollisionSnake();
+            EatFood();
             DrawSnake();
 
             Thread.Sleep(100);
         }
 
         Console.Clear();
-        Console.WriteLine("Вы проиграли :( ");
+        Console.WriteLine("Игра окончена :( ");
         Console.WriteLine($"Ваш счёт: {snakeElements.Count - 1}");
-    }
 
-    static void StartGame()
-    {
-        Position snakeHead = new Position((int)Enums.Width / 2, (int)Enums.Height / 2);
-        snakeElements.Enqueue(snakeHead);
+        void StartGame()
+        {
+            Position snakeHead = new Position((int)Enums.Width / 2, (int)Enums.Height / 2);
+            snakeElements.Enqueue(snakeHead);
 
-        GenerateFood();
-    }
+            SpawnFood();
+        }
 
-    static void DrawSnake()
-    {
-        Console.Clear();
+        void DrawSnake()
+        {
+            Console.Clear();
 
-        foreach (Position position in snakeElements)
+            foreach (Position position in snakeElements)
+            {
+                try
+                {
+                    Console.SetCursorPosition(position.X, position.Y);
+                    Console.Write("■");
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+            }
+
+            Console.SetCursorPosition(food.X, food.Y);
+            Console.Write("■");
+        }
+
+        void MoveSnake()
+        {
+            Position currentHead = snakeElements.Last();
+            Position newHead = new Position(currentHead.X + directionX, currentHead.Y + directionY);
+
+            snakeElements.Enqueue(newHead);
+
+            if (newHead.X == food.X && newHead.Y == food.Y)
+            {
+                SpawnFood();
+            }
+            else
+            {
+                snakeElements.Dequeue();
+            }
+        }
+
+        void CollisionSnake()
         {
             try
             {
-                Console.SetCursorPosition(position.X, position.Y);
-                Console.Write("■");
+                Position head = snakeElements.Last();
+
+                if (head.X < 0 || head.X >= (int)Enums.Width || head.Y < 0 || head.Y >= (int)Enums.Height)
+                {
+                    isRunning = false;
+                }
+
+                if (snakeElements.Count > 1 && snakeElements.Take(snakeElements.Count - 1).Any(p => p.X == head.X && p.Y == head.Y))
+                {
+                    isRunning = false;
+                }
             }
             catch (Exception)
             {
-                
-                return;
+
+                throw;
             }
 
         }
 
-        Console.SetCursorPosition(food.X, food.Y);
-        Console.Write("O");
-    }
-
-    static void MoveSnake()
-    {
-        Position currentHead = snakeElements.Last();
-        Position newHead = new Position(currentHead.X + directionX, currentHead.Y + directionY);
-
-        snakeElements.Enqueue(newHead);
-
-        if (newHead.X == food.X && newHead.Y == food.Y)
-        {
-            GenerateFood();
-        }
-        else
-        {
-            snakeElements.Dequeue();
-        }
-    }
-
-    static private void CheckCollision()
-    {
-        try
+        void EatFood()
         {
             Position head = snakeElements.Last();
 
-            if (head.X < 0 || head.X >= (int)Enums.Width || head.Y < 0 || head.Y >= (int)Enums.Height)
+            if (head.X == food.X && head.Y == food.Y)
             {
-                isRunning = true;
-            }
-
-            if (snakeElements.Count > 1 && snakeElements.Take(snakeElements.Count - 1).Any(p => p.X == head.X && p.Y == head.Y))
-            {
-                isRunning = true;
+                SpawnFood();
             }
         }
-        catch (Exception)
+
+        void SpawnFood()
         {
+            int x = randomGen.Next(0, (int)Enums.Width);
+            int y = randomGen.Next(0, (int)Enums.Height);
 
-            throw;
-        }
-
-    }
-
-    static void CheckFood()
-    {
-        Position head = snakeElements.Last();
-
-        if (head.X == food.X && head.Y == food.Y)
-        {
-            GenerateFood();
-        }
-    }
-
-    static void GenerateFood()
-    {
-        int x = randomGen.Next(0, (int)Enums.Width);
-        int y = randomGen.Next(0, (int)Enums.Height);
-
-        food = new Position(x, y);
-
-        while (snakeElements.Any(p => p.X == x && p.Y == y))
-        {
-            x = randomGen.Next(0, (int)Enums.Width);
-            y = randomGen.Next(0, (int)Enums.Height);
             food = new Position(x, y);
+
+            while (snakeElements.Any(p => p.X == x && p.Y == y))
+            {
+                x = randomGen.Next(0, (int)Enums.Width);
+                y = randomGen.Next(0, (int)Enums.Height);
+                food = new Position(x, y);
+            }
         }
-    }
 
-    static void Input(ConsoleKey key)
-    {
-        switch (key)
+        void Input(ConsoleKey key)
         {
-            case ConsoleKey.UpArrow:
-                if (directionY == 0)
-                {
-                    directionX = 0;
-                    directionY = -1;
-                }
-                break;
+            switch (key)
+            {
+                case (ConsoleKey)Enums.Up:
+                    if (directionY == 0)
+                    {
+                        directionX = 0;
+                        directionY = -1;
+                    }
+                    break;
 
-            case ConsoleKey.DownArrow:
-                if (directionY == 0)
-                {
-                    directionX = 0;
-                    directionY = 1;
-                }
-                break;
+                case (ConsoleKey)Enums.Down:
+                    if (directionY == 0)
+                    {
+                        directionX = 0;
+                        directionY = 1;
+                    }
+                    break;
 
-            case ConsoleKey.LeftArrow:
-                if (directionX == 0)
-                {
-                    directionX = -1;
-                    directionY = 0;
-                }
-                break;
+                case (ConsoleKey)Enums.Left:
+                    if (directionX == 0)
+                    {
+                        directionX = -1;
+                        directionY = 0;
+                    }
+                    break;
 
-            case ConsoleKey.RightArrow:
-                if (directionX == 0)
-                {
-                    directionX = 1;
-                    directionY = 0;
-                }
-                break;
+                case (ConsoleKey)Enums.Right:
+                    if (directionX == 0)
+                    {
+                        directionX = 1;
+                        directionY = 0;
+                    }
+                    break;
 
-            case ConsoleKey.Escape:
-                isRunning = true;
-                break;
+                case (ConsoleKey)Enums.Escape:
+                    isRunning = false;
+                    break;
+            }
         }
     }
 }
